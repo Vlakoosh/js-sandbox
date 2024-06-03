@@ -21,6 +21,8 @@ canvas.style.backgroundColor = "whitesmoke";
 let bufferData = ctx.createImageData(CANVAS_WIDTH, CANVAS_HEIGHT);
 let buffer = bufferData.data;
 
+//TODO: add metal that can store and average temperature. make it act as ember if it's hot enough
+
 class Cell {
     constructor(name, state, color) {
         this.updatable = true;
@@ -32,6 +34,8 @@ class Cell {
 
         this.flammable = false;
         this.flamability = 0.5;
+
+        this.meltable = false;
 
         this.fresh = true;
     }
@@ -86,6 +90,7 @@ class CellGround extends Cell {
 class CellSand extends Cell {
     constructor() {
         super("Sand", "sand", "#C2B280");
+        this.meltable = true;
     }
 
     getClassName() {
@@ -97,7 +102,9 @@ class CellRedSand extends Cell {
     constructor() {
         super("Red Sand", "sand", "#a66228");
     }
-
+    getMelted(){
+        new CellGlass();
+    }
     getClassName() {
         return this.constructor.name;
     }
@@ -237,6 +244,15 @@ class CellEmber extends Cell {
     }
 }
 
+class CellGlass extends Cell {
+    constructor() {
+        super("Glass", "solid", "#eaf0f0");
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+}
 
 let selectedMaterial = "ground";
 let globalBrushSize = 10;
@@ -636,7 +652,6 @@ function updateCellGrid() {
                     let maxR = (row < CANVAS_HEIGHT - 1) ? 1 : 0;
                     let minC = (col > 0) ? -1 : 0;
                     let maxC = (col < CANVAS_WIDTH - 1) ? 1 : 0;
-                    //TODO make it so fire doesn't instantly light up everything above it
                     for (let i = minR; i <= maxR; i++) {
                         for (let j = minC; j <= maxC; j++) {
                             if (cellGrid[row + i][col + j].name === "Fire" && cellGrid[row + i][col + j].fresh !== true) {
@@ -647,6 +662,26 @@ function updateCellGrid() {
 
                                 }
 
+                            }
+                        }
+                    }
+                }
+
+                if (cellGrid[row][col].meltable) {
+                    let minR = (row > 0) ? -1 : 0;
+                    minR = (row > 1) ? -2 : minR;
+                    let maxR = (row < CANVAS_HEIGHT - 1) ? 1 : 0;
+                    maxR = (row < CANVAS_HEIGHT - 2) ? 2 : maxR;
+                    let minC = (col > 0) ? -1 : 0;
+                    minC = (col > 1) ? -2 : minC;
+                    let maxC = (col < CANVAS_WIDTH - 1) ? 1 : 0;
+                    maxC = (col < CANVAS_WIDTH - 2) ? 2 : maxC;
+                    for (let i = minR; i <= maxR; i++) {
+                        for (let j = minC; j <= maxC; j++) {
+                            if (cellGrid[row + i][col + j].name === "Fire") {
+                                if (cellGrid[row][col].getClassName() === "CellSand") {
+                                    cellGrid[row][col] = new CellGlass();
+                                }
                             }
                         }
                     }
