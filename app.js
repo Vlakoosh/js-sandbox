@@ -91,9 +91,11 @@ class CellRedSand extends Cell {
 class CellWater extends Cell {
     constructor() {
         super("Water", "liquid", "#7777FF");
-        this.gas = new CellSteam();
     }
 
+    getGas() {
+        return new CellSteam();
+    }
     getClassName() {
         return this.constructor.name;
     }
