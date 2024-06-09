@@ -42,8 +42,8 @@ class Cell {
         return this.updatable;
     }
 
-    tickLifetime(){
-        if (this.lifetime > 0){
+    tickLifetime() {
+        if (this.lifetime > 0) {
             this.lifetime--;
         }
     }
@@ -110,6 +110,7 @@ class CellWater extends Cell {
     getGas() {
         return new CellSteam();
     }
+
     getClassName() {
         return this.constructor.name;
     }
@@ -120,6 +121,7 @@ class CellSteam extends Cell {
         super("Steam", "steam", "#afafff");
         this.spread = 0.9;
     }
+
     getLiquid() {
         return new CellWater();
     }
@@ -136,6 +138,10 @@ class CellRope extends Cell {
         this.flamability = 0.5;
     }
 
+    getBurned() {
+        return new CellEmber();
+    }
+
     getClassName() {
         return this.constructor.name;
     }
@@ -145,8 +151,12 @@ class CellPiwo extends Cell {
     constructor() {
         super("Piwo", "liquid", "#FBB117");
         this.flammable = true;
-        this.flamability = 0.5;
+        this.flamability = 0.9;
         this.colorOffset = 0;
+    }
+
+    getBurned() {
+        return new CellFire();
     }
 
     getClassName() {
@@ -160,6 +170,7 @@ class CellSmoke extends Cell {
         super("Smoke", "gas", "#414141");
         this.spread = 0.9;
     }
+
     getLiquid() {
         return new CellSmoke();
     }
@@ -170,13 +181,14 @@ class CellSmoke extends Cell {
 }
 
 class CellFire extends Cell {
-    constructor(lifetime) {
+    constructor() {
         super("Fire", "fire", "#ebbf0a");
         this.lifetime = Math.floor(Math.random() * 10)
         this.spread = 0.9;
     }
-    getLiquid() {
-        return new CellSmoke();
+
+    getDead() {
+        return new CellEmpty();
     }
 
     getClassName() {
@@ -195,6 +207,34 @@ class CellFire extends Cell {
         }
     }
 }
+
+class CellEmber extends Cell {
+    constructor() {
+        super("Fire", "solid", "#ebbf0a");
+        this.lifetime = Math.floor(Math.random() * 100)
+    }
+
+    getDead() {
+        return new CellFire();
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+
+    getColor(c, x, y) {
+        if (c === "r") {
+            return parseInt(this.color.substring(1, 3), 16) / (1 + (this.colorOffset * 0.15));
+        }
+        if (c === "g") {
+            return (parseInt(this.color.substring(3, 5), 16) / (1 + (this.colorOffset * 0.15)) * Math.random() - 0.2);
+        }
+        if (c === "b") {
+            return parseInt(this.color.substring(5, 7), 16) / (1 + (this.colorOffset * 0.15));
+        }
+    }
+}
+
 
 let selectedMaterial = "ground";
 let globalBrushSize = 5;
@@ -244,11 +284,11 @@ function finishDrawing() {
 
 function drawMaterial(x, y, material, brushSize) {
 
-    for (let cx = -(brushSize-1); cx <= (brushSize-1); cx++){
-        for (let cy = -(brushSize-1); cy <= (brushSize-1); cy++){
+    for (let cx = -(brushSize - 1); cx <= (brushSize - 1); cx++) {
+        for (let cy = -(brushSize - 1); cy <= (brushSize - 1); cy++) {
             try {
                 let cell;
-                switch (material){
+                switch (material) {
                     case "empty":
                         cell = new CellEmpty();
                         break;
@@ -277,9 +317,9 @@ function drawMaterial(x, y, material, brushSize) {
                         cell = new CellPiwo();
                         break;
                 }
-                cellGrid[y+cy][x+cx] = cell;
+                cellGrid[y + cy][x + cx] = cell;
+            } catch (ignored) {
             }
-            catch (ignored){}
         }
     }
 
@@ -481,24 +521,21 @@ function updateCellGrid() {
 
                 if (cellGrid[row][col].state === "steam") {
                     if ((row > 0 && cellGrid[row - 1][col].name !== "Empty" && cellGrid[row - 1][col].state !== "steam")) {
-                        if (cellGrid[row - 1][col].state === "liquid"){
+                        if (cellGrid[row - 1][col].state === "liquid") {
                             cellGrid[row][col].setUpdatable(false);
                             let cellHold = cellGrid[row - 1][col];
                             cellGrid[row - 1][col] = cellGrid[row][col];
                             cellGrid[row][col] = cellHold;
-                        }
-                        else{
+                        } else {
                             cellGrid[row][col] = cellGrid[row][col].getLiquid();
                         }
-                    }else if(row === 0){
+                    } else if (row === 0) {
                         cellGrid[row][col] = cellGrid[row][col].getLiquid();
-                    }
-                    else {
-                        if(Math.sign(Math.random() - 0.5) > 0){
+                    } else {
+                        if (Math.sign(Math.random() - 0.5) > 0) {
                             cellGrid[row - 1][col] = cellGrid[row][col];
                             cellGrid[row][col] = new CellEmpty();
-                        }
-                        else {
+                        } else {
                             if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty" && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
                                 switch (Math.sign(Math.random() - 0.5)) {
                                     case 1:
@@ -527,21 +564,19 @@ function updateCellGrid() {
 
                 if (cellGrid[row][col].state === "fire") {
                     if ((row > 0 && cellGrid[row - 1][col].name !== "Empty" && cellGrid[row - 1][col].state !== "fire")) {
-                        if (cellGrid[row - 1][col].state === "liquid"){
+                        if (cellGrid[row - 1][col].state === "liquid") {
                             cellGrid[row][col].setUpdatable(false);
                             let cellHold = cellGrid[row - 1][col];
                             cellGrid[row - 1][col] = cellGrid[row][col];
                             cellGrid[row][col] = cellHold;
                         }
-                    }else if(row === 0){
-                        cellGrid[row][col] = cellGrid[row][col].getLiquid();
-                    }
-                    else {
-                        if(Math.sign(Math.random() - 0.5) > 0){
+                    } else if (row === 0) {
+                        cellGrid[row][col] = cellGrid[row][col].getDead();
+                    } else {
+                        if (Math.sign(Math.random() - 0.5) > 0) {
                             cellGrid[row - 1][col] = cellGrid[row][col];
                             cellGrid[row][col] = new CellEmpty();
-                        }
-                        else {
+                        } else {
                             if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty" && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
                                 switch (Math.sign(Math.random() - 0.5)) {
                                     case 1:
@@ -568,19 +603,20 @@ function updateCellGrid() {
                     }
                 }
 
-                if (cellGrid[row][col].flammable){
+                if (cellGrid[row][col].flammable) {
                     let minR = (row > 0) ? -1 : 0;
                     let maxR = (row < CANVAS_HEIGHT - 1) ? 1 : 0;
                     let minC = (col > 0) ? -1 : 0;
                     let maxC = (col < CANVAS_WIDTH - 1) ? 1 : 0;
-
-                    for (let i = minR; i <= maxR; i++){
-                        for (let j = minC; j <= maxC; j++){
-                            if (cellGrid[row+i][col+j].name === "Fire"){
-                                console.log("fire");
+                    //TODO make it so fire doesn't instantly light up everything above it
+                    for (let i = minR; i <= maxR; i++) {
+                        for (let j = minC; j <= maxC; j++) {
+                            if (cellGrid[row + i][col + j].name === "Fire") {
                                 let chance = Math.random() - 1 + cellGrid[row][col].flamability;
-                                if (chance > 0){
-                                    cellGrid[row][col]= new CellFire();
+                                if (chance > 0) {
+                                    if (cellGrid[row][col].name === "Rope") cellGrid[row][col] = new CellEmber();
+                                    else cellGrid[row][col] = new CellFire();
+
                                 }
 
                             }
@@ -591,7 +627,7 @@ function updateCellGrid() {
             } // if cell is updatable
             cellGrid[row][col].tickLifetime();
             if (cellGrid[row][col].lifetime === 0) {
-                cellGrid[row][col] = new CellEmpty();
+                cellGrid[row][col] = cellGrid[row][col].getDead();
             }
         }
     }
