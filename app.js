@@ -7,6 +7,9 @@ const buttonGround = document.getElementById("buttonGround");
 const buttonEmpty = document.getElementById("buttonEmpty");
 const buttonRedSand = document.getElementById("buttonRedSand");
 const buttonSteam = document.getElementById("buttonSteam");
+const buttonFire = document.getElementById("buttonFire");
+const buttonRope = document.getElementById("buttonRope");
+const buttonPiwo = document.getElementById("buttonPiwo");
 
 const CANVAS_WIDTH = 300;
 const CANVAS_HEIGHT = 200;
@@ -25,6 +28,10 @@ class Cell {
         this.name = name;
         this.state = state;
         this.color = color;
+        this.lifetime = -1;
+
+        this.flammable = false;
+        this.flamability = 0.5;
     }
 
     setUpdatable(update) {
@@ -33,6 +40,12 @@ class Cell {
 
     isCellUpdatable() {
         return this.updatable;
+    }
+
+    tickLifetime(){
+        if (this.lifetime > 0){
+            this.lifetime--;
+        }
     }
 
     getColor(c, x, y) {
@@ -105,11 +118,81 @@ class CellWater extends Cell {
 class CellSteam extends Cell {
     constructor() {
         super("Steam", "steam", "#afafff");
-        this.liquid = new CellWater();
+        this.spread = 0.9;
+    }
+    getLiquid() {
+        return new CellWater();
     }
 
     getClassName() {
         return this.constructor.name;
+    }
+}
+
+class CellRope extends Cell {
+    constructor() {
+        super("Rope", "solid", "#FFE4C4");
+        this.flammable = true;
+        this.flamability = 0.5;
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+}
+
+class CellPiwo extends Cell {
+    constructor() {
+        super("Piwo", "liquid", "#FBB117");
+        this.flammable = true;
+        this.flamability = 0.5;
+        this.colorOffset = 0;
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+
+}
+
+class CellSmoke extends Cell {
+    constructor() {
+        super("Smoke", "gas", "#414141");
+        this.spread = 0.9;
+    }
+    getLiquid() {
+        return new CellSmoke();
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+}
+
+class CellFire extends Cell {
+    constructor(lifetime) {
+        super("Fire", "fire", "#ebbf0a");
+        this.lifetime = Math.floor(Math.random() * 10)
+        this.spread = 0.9;
+    }
+    getLiquid() {
+        return new CellSmoke();
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+
+    getColor(c, x, y) {
+        if (c === "r") {
+            return parseInt(this.color.substring(1, 3), 16) / (1 + (this.colorOffset * 0.15));
+        }
+        if (c === "g") {
+            return (parseInt(this.color.substring(3, 5), 16) / (1 + (this.colorOffset * 0.15)) * Math.random());
+        }
+        if (c === "b") {
+            return parseInt(this.color.substring(5, 7), 16) / (1 + (this.colorOffset * 0.15));
+        }
     }
 }
 
@@ -134,7 +217,16 @@ buttonEmpty.addEventListener("click", () => {
 buttonSteam.addEventListener("click", () => {
     selectedMaterial = "steam";
 });
+buttonRope.addEventListener("click", () => {
+    selectedMaterial = "rope";
+});
+buttonFire.addEventListener("click", () => {
+    selectedMaterial = "fire";
+});
 
+buttonPiwo.addEventListener("click", () => {
+    selectedMaterial = "petrol";
+});
 
 let isPainting = false;
 
@@ -174,6 +266,15 @@ function drawMaterial(x, y, material, brushSize) {
                         break;
                     case "steam":
                         cell = new CellSteam();
+                        break;
+                    case "rope":
+                        cell = new CellRope();
+                        break;
+                    case "fire":
+                        cell = new CellFire();
+                        break;
+                    case "petrol":
+                        cell = new CellPiwo();
                         break;
                 }
                 cellGrid[y+cy][x+cx] = cell;
@@ -387,10 +488,10 @@ function updateCellGrid() {
                             cellGrid[row][col] = cellHold;
                         }
                         else{
-                            cellGrid[row][col] = cellGrid[row][col].liquid;
+                            cellGrid[row][col] = cellGrid[row][col].getLiquid();
                         }
                     }else if(row === 0){
-                        cellGrid[row][col] = cellGrid[row][col].liquid;
+                        cellGrid[row][col] = cellGrid[row][col].getLiquid();
                     }
                     else {
                         if(Math.sign(Math.random() - 0.5) > 0){
@@ -423,8 +524,75 @@ function updateCellGrid() {
 
                     }
                 }
-            } // if cell is updatable
 
+                if (cellGrid[row][col].state === "fire") {
+                    if ((row > 0 && cellGrid[row - 1][col].name !== "Empty" && cellGrid[row - 1][col].state !== "fire")) {
+                        if (cellGrid[row - 1][col].state === "liquid"){
+                            cellGrid[row][col].setUpdatable(false);
+                            let cellHold = cellGrid[row - 1][col];
+                            cellGrid[row - 1][col] = cellGrid[row][col];
+                            cellGrid[row][col] = cellHold;
+                        }
+                    }else if(row === 0){
+                        cellGrid[row][col] = cellGrid[row][col].getLiquid();
+                    }
+                    else {
+                        if(Math.sign(Math.random() - 0.5) > 0){
+                            cellGrid[row - 1][col] = cellGrid[row][col];
+                            cellGrid[row][col] = new CellEmpty();
+                        }
+                        else {
+                            if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty" && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                                switch (Math.sign(Math.random() - 0.5)) {
+                                    case 1:
+                                        cellGrid[row][col].setUpdatable(false);
+                                        cellGrid[row][col + 1] = cellGrid[row][col];
+                                        cellGrid[row][col] = new CellEmpty();
+                                        break;
+                                    case -1:
+                                        cellGrid[row][col].setUpdatable(false);
+                                        cellGrid[row][col - 1] = cellGrid[row][col];
+                                        cellGrid[row][col] = new CellEmpty();
+                                }
+                            } else if (col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                                cellGrid[row][col].setUpdatable(false);
+                                cellGrid[row][col + 1] = cellGrid[row][col];
+                                cellGrid[row][col] = new CellEmpty();
+                            } else if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty") {
+                                cellGrid[row][col].setUpdatable(false);
+                                cellGrid[row][col - 1] = cellGrid[row][col];
+                                cellGrid[row][col] = new CellEmpty();
+                            }
+                        }
+
+                    }
+                }
+
+                if (cellGrid[row][col].flammable){
+                    let minR = (row > 0) ? -1 : 0;
+                    let maxR = (row < CANVAS_HEIGHT - 1) ? 1 : 0;
+                    let minC = (col > 0) ? -1 : 0;
+                    let maxC = (col < CANVAS_WIDTH - 1) ? 1 : 0;
+
+                    for (let i = minR; i <= maxR; i++){
+                        for (let j = minC; j <= maxC; j++){
+                            if (cellGrid[row+i][col+j].name === "Fire"){
+                                console.log("fire");
+                                let chance = Math.random() - 1 + cellGrid[row][col].flamability;
+                                if (chance > 0){
+                                    cellGrid[row][col]= new CellFire();
+                                }
+
+                            }
+                        }
+                    }
+                }
+
+            } // if cell is updatable
+            cellGrid[row][col].tickLifetime();
+            if (cellGrid[row][col].lifetime === 0) {
+                cellGrid[row][col] = new CellEmpty();
+            }
         }
     }
 

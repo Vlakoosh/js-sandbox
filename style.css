@@ -75,3 +75,18 @@ button {
     background-color: #afafff;
     color: black;
 }
+
+#buttonFire {
+    background-color: red;
+    color: white;
+}
+
+#buttonRope {
+    background-color: bisque;
+    color: black;
+}
+
+#buttonPiwo {
+    background-color: #FBB117;
+    color: black;
+}
