@@ -1,6 +1,12 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+const buttonSand = document.getElementById("buttonSand");
+const buttonWater = document.getElementById("buttonWater");
+const buttonGround = document.getElementById("buttonGround");
+const buttonEmpty = document.getElementById("buttonEmpty");
+const buttonRedSand = document.getElementById("buttonRedSand");
+
 const CANVAS_WIDTH = 300;
 const CANVAS_HEIGHT = 200;
 
@@ -51,6 +57,16 @@ class CellEmpty extends Cell {
     }
 }
 
+class CellGround extends Cell {
+    constructor() {
+        super("Ground", "solid", "#6b3e18");
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+}
+
 class CellSand extends Cell {
     constructor() {
         super("Sand", "sand", "#C2B280");
@@ -81,6 +97,78 @@ class CellWater extends Cell {
     }
 }
 
+let selectedMaterial = "ground";
+let globalBrushSize = 5;
+
+buttonWater.addEventListener("click", () => {
+    selectedMaterial = "water";
+});
+buttonGround.addEventListener("click", () => {
+    selectedMaterial = "ground";
+});
+buttonSand.addEventListener("click", () => {
+    selectedMaterial = "sand";
+});
+buttonRedSand.addEventListener("click", () => {
+    selectedMaterial = "redSand";
+});
+buttonEmpty.addEventListener("click", () => {
+    selectedMaterial = "empty";
+});
+
+let isPainting = false;
+
+function startDrawing(e) {
+    isPainting = true;
+    ctx.beginPath();
+    draw(e);
+}
+
+function finishDrawing() {
+    isPainting = false;
+    ctx.closePath();
+}
+
+function drawMaterial(x, y, material, brushSize) {
+
+    for (let cx = -(brushSize-1); cx <= (brushSize-1); cx++){
+        for (let cy = -(brushSize-1); cy <= (brushSize-1); cy++){
+            try {
+                let cell;
+                switch (material){
+                    case "empty":
+                        cell = new CellEmpty();
+                        break;
+                    case "ground":
+                        cell = new CellGround();
+                        break;
+                    case "water":
+                        cell = new CellWater();
+                        break;
+                    case "sand":
+                        cell = new CellSand();
+                        break;
+                    case "redSand":
+                        cell = new CellRedSand();
+                        break;
+                }
+                cellGrid[y+cy][x+cx] = cell;
+            }
+            catch (ignored){}
+        }
+    }
+
+}
+
+function draw(e) {
+    if (!isPainting) return;
+    let canvasRect = canvas.getBoundingClientRect();
+    drawMaterial(Math.floor((e.clientX - canvasRect.left) / 3), Math.floor((e.clientY - canvasRect.top) / 3), selectedMaterial, globalBrushSize);
+}
+
+canvas.addEventListener("mousedown", startDrawing);
+canvas.addEventListener("mouseup", finishDrawing);
+canvas.addEventListener("mousemove", draw);
 
 let cellGrid = new Array(CANVAS_HEIGHT);
 let bufferGrid = new Array(CANVAS_HEIGHT);
@@ -195,8 +283,7 @@ function updateCellGrid() {
                                 cellGrid[row + 1][col - 1] = cellGrid[row][col];
                                 cellGrid[row][col] = new CellEmpty();
                         }
-                    }
-                    else if (row < CANVAS_HEIGHT - 1 && col < CANVAS_WIDTH - 1 && col > 0 && cellGrid[row + 1][col + 1].state === "liquid" && cellGrid[row + 1][col - 1].state === "liquid") {
+                    } else if (row < CANVAS_HEIGHT - 1 && col < CANVAS_WIDTH - 1 && col > 0 && cellGrid[row + 1][col + 1].state === "liquid" && cellGrid[row + 1][col - 1].state === "liquid") {
                         let cellHold;
                         switch (Math.sign(Math.random() - 0.5)) {
                             case 1:
@@ -216,8 +303,7 @@ function updateCellGrid() {
                         cellGrid[row][col].setUpdatable(false);
                         cellGrid[row + 1][col + 1] = cellGrid[row][col];
                         cellGrid[row][col] = new CellEmpty();
-                    }
-                    else if (row < CANVAS_HEIGHT - 1 && col < CANVAS_WIDTH - 1 && cellGrid[row + 1][col + 1].state === "liquid") {
+                    } else if (row < CANVAS_HEIGHT - 1 && col < CANVAS_WIDTH - 1 && cellGrid[row + 1][col + 1].state === "liquid") {
                         cellGrid[row][col].setUpdatable(false);
                         let cellHold = cellGrid[row + 1][col + 1]
                         cellGrid[row + 1][col + 1] = cellGrid[row][col];
@@ -227,8 +313,7 @@ function updateCellGrid() {
                         cellGrid[row][col].setUpdatable(false);
                         cellGrid[row + 1][col - 1] = cellGrid[row][col];
                         cellGrid[row][col] = new CellEmpty();
-                    }
-                    else if (row < CANVAS_HEIGHT - 1 && col > 0 && cellGrid[row + 1][col - 1].state === "liquid") {
+                    } else if (row < CANVAS_HEIGHT - 1 && col > 0 && cellGrid[row + 1][col - 1].state === "liquid") {
                         cellGrid[row][col].setUpdatable(false);
                         let cellHold = cellGrid[row + 1][col - 1]
                         cellGrid[row + 1][col - 1] = cellGrid[row][col];
@@ -237,12 +322,11 @@ function updateCellGrid() {
                 }
 
                 if (cellGrid[row][col].state === "liquid") {
-                    if (row < CANVAS_HEIGHT - 1 && cellGrid[row + 1][col].getClassName() === "CellEmpty" && Math.sign(Math.random()-0.1) > 0) {
+                    if (row < CANVAS_HEIGHT - 1 && cellGrid[row + 1][col].getClassName() === "CellEmpty" && Math.sign(Math.random() - 0.1) > 0) {
                         cellGrid[row][col].setUpdatable(false);
                         cellGrid[row + 1][col] = cellGrid[row][col];
                         cellGrid[row][col] = new CellEmpty();
-                    }
-                    else {
+                    } else {
                         if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty" && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
                             switch (Math.sign(Math.random() - 0.5)) {
                                 case 1:
@@ -255,20 +339,17 @@ function updateCellGrid() {
                                     cellGrid[row][col - 1] = cellGrid[row][col];
                                     cellGrid[row][col] = new CellEmpty();
                             }
-                        }
-                        else if (col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                        } else if (col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
                             cellGrid[row][col].setUpdatable(false);
                             cellGrid[row][col + 1] = cellGrid[row][col];
                             cellGrid[row][col] = new CellEmpty();
-                        }
-                        else if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty") {
+                        } else if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty") {
                             cellGrid[row][col].setUpdatable(false);
                             cellGrid[row][col - 1] = cellGrid[row][col];
                             cellGrid[row][col] = new CellEmpty();
                         }
 
                     }
-
 
 
                 }
