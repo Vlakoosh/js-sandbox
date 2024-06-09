@@ -140,6 +140,7 @@ let isPainting = false;
 function startDrawing(e) {
     isPainting = true;
     ctx.beginPath();
+    console.log(selectedMaterial);
     draw(e);
 }
 
