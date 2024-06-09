@@ -1,24 +1,72 @@
 * {
-    box-sizing: border-box;
     padding: 0;
     margin: 0;
 }
 
 body {
+    background-color: white;
+}
+
+#mainContainer {
+    width: 100vw;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .content {
+    width: 900px;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    border: 20px ridge #857e7e;
 }
 
 #canvas {
     image-rendering: pixelated;
     width: 900px;
     height: 600px;
+}
+
+.buttonContainer {
+    width: 900px;
+    height: 150px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    border-top: 10px ridge #857e7e;
+    background-color: #6b6666;
+}
+
+button {
+    width: 80px;
+    height: 80px;
+    border: 10px ridge #857e7e;
+}
+
+#buttonEmpty {
+    background-color: black;
+    color: white;
+}
+
+#buttonGround {
+    background-color: #6b3e18;
+    color: white;
+}
+
+#buttonSand {
+    background-color: #C2B280;
+    color: black;
+}
+
+#buttonRedSand {
+    background-color: #a66228;
+    color: white;
+}
+
+#buttonWater {
+    background-color: #7777FF;
+    color: white;
 }
