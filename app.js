@@ -6,6 +6,7 @@ const buttonWater = document.getElementById("buttonWater");
 const buttonGround = document.getElementById("buttonGround");
 const buttonEmpty = document.getElementById("buttonEmpty");
 const buttonRedSand = document.getElementById("buttonRedSand");
+const buttonSteam = document.getElementById("buttonSteam");
 
 const CANVAS_WIDTH = 300;
 const CANVAS_HEIGHT = 200;
@@ -90,6 +91,18 @@ class CellRedSand extends Cell {
 class CellWater extends Cell {
     constructor() {
         super("Water", "liquid", "#7777FF");
+        this.gas = new CellSteam();
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+}
+
+class CellSteam extends Cell {
+    constructor() {
+        super("Steam", "steam", "#afafff");
+        this.liquid = new CellWater();
     }
 
     getClassName() {
@@ -115,6 +128,10 @@ buttonRedSand.addEventListener("click", () => {
 buttonEmpty.addEventListener("click", () => {
     selectedMaterial = "empty";
 });
+buttonSteam.addEventListener("click", () => {
+    selectedMaterial = "steam";
+});
+
 
 let isPainting = false;
 
@@ -150,6 +167,9 @@ function drawMaterial(x, y, material, brushSize) {
                         break;
                     case "redSand":
                         cell = new CellRedSand();
+                        break;
+                    case "steam":
+                        cell = new CellSteam();
                         break;
                 }
                 cellGrid[y+cy][x+cx] = cell;
@@ -353,6 +373,52 @@ function updateCellGrid() {
 
 
                 }
+
+                if (cellGrid[row][col].state === "steam") {
+                    if ((row > 0 && cellGrid[row - 1][col].name !== "Empty" && cellGrid[row - 1][col].state !== "steam")) {
+                        if (cellGrid[row - 1][col].state === "liquid"){
+                            cellGrid[row][col].setUpdatable(false);
+                            let cellHold = cellGrid[row - 1][col];
+                            cellGrid[row - 1][col] = cellGrid[row][col];
+                            cellGrid[row][col] = cellHold;
+                        }
+                        else{
+                            cellGrid[row][col] = cellGrid[row][col].liquid;
+                        }
+                    }else if(row === 0){
+                        cellGrid[row][col] = cellGrid[row][col].liquid;
+                    }
+                    else {
+                        if(Math.sign(Math.random() - 0.5) > 0){
+                            cellGrid[row - 1][col] = cellGrid[row][col];
+                            cellGrid[row][col] = new CellEmpty();
+                        }
+                        else {
+                            if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty" && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                                switch (Math.sign(Math.random() - 0.5)) {
+                                    case 1:
+                                        cellGrid[row][col].setUpdatable(false);
+                                        cellGrid[row][col + 1] = cellGrid[row][col];
+                                        cellGrid[row][col] = new CellEmpty();
+                                        break;
+                                    case -1:
+                                        cellGrid[row][col].setUpdatable(false);
+                                        cellGrid[row][col - 1] = cellGrid[row][col];
+                                        cellGrid[row][col] = new CellEmpty();
+                                }
+                            } else if (col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                                cellGrid[row][col].setUpdatable(false);
+                                cellGrid[row][col + 1] = cellGrid[row][col];
+                                cellGrid[row][col] = new CellEmpty();
+                            } else if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty") {
+                                cellGrid[row][col].setUpdatable(false);
+                                cellGrid[row][col - 1] = cellGrid[row][col];
+                                cellGrid[row][col] = new CellEmpty();
+                            }
+                        }
+
+                    }
+                }
             } // if cell is updatable
 
         }
@@ -370,15 +436,15 @@ updateCellGrid();
 
 setInterval(() => {
 
-    cellGrid[0][50] = new CellSand();
-    cellGrid[0][51] = new CellSand();
-
-    cellGrid[0][125] = new CellWater();
-    cellGrid[0][150] = new CellWater();
-    cellGrid[0][175] = new CellWater();
-
-    cellGrid[0][250] = new CellRedSand();
-    cellGrid[0][251] = new CellRedSand();
+    // cellGrid[0][50] = new CellSand();
+    // cellGrid[0][51] = new CellSand();
+    //
+    // cellGrid[0][125] = new CellWater();
+    // cellGrid[0][150] = new CellWater();
+    // cellGrid[0][175] = new CellWater();
+    //
+    // cellGrid[0][250] = new CellRedSand();
+    // cellGrid[0][251] = new CellRedSand();
 
     updateCellGrid();
     drawCellsOnCanvas();
