@@ -91,6 +91,7 @@ class CellRedSand extends Cell {
 class CellWater extends Cell {
     constructor() {
         super("Water", "liquid", "#7777FF");
+        this.colorOffset = 0;
     }
 
     getGas() {
