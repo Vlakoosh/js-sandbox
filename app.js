@@ -667,7 +667,6 @@ function updateCellGrid() {
                     }
                 }
 
-
                 if (cellGrid[row][col].meltable) {
                     let minR = (row > 0) ? -1 : 0;
                     minR = (row > 1) ? -2 : minR;
