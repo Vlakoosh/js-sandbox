@@ -10,6 +10,7 @@ const buttonSteam = document.getElementById("buttonSteam");
 const buttonFire = document.getElementById("buttonFire");
 const buttonRope = document.getElementById("buttonRope");
 const buttonPiwo = document.getElementById("buttonPiwo");
+const buttonAcid = document.getElementById("buttonAcid");
 
 const CANVAS_WIDTH = 300;
 const CANVAS_HEIGHT = 200;
@@ -36,6 +37,8 @@ class Cell {
         this.flamability = 0.5;
 
         this.meltable = false;
+
+        this.dissolvable = false;
 
         this.fresh = true;
     }
@@ -80,6 +83,7 @@ class CellEmpty extends Cell {
 class CellGround extends Cell {
     constructor() {
         super("Ground", "solid", "#6b3e18");
+        this.dissolvable = true;
     }
 
     getClassName() {
@@ -256,6 +260,17 @@ class CellGlass extends Cell {
     }
 }
 
+class CellAcid extends Cell {
+    constructor() {
+        super("Glass", "acid", "#39eb39");
+        this.colorOffset = 0;
+    }
+
+    getClassName() {
+        return this.constructor.name;
+    }
+}
+
 let selectedMaterial = "ground";
 let globalBrushSize = 10;
 
@@ -287,6 +302,10 @@ buttonFire.addEventListener("click", () => {
 buttonPiwo.addEventListener("click", () => {
     selectedMaterial = "petrol";
 });
+
+buttonAcid.addEventListener("click", () => {
+    selectedMaterial = "acid";
+})
 
 let isPainting = false;
 
@@ -336,6 +355,8 @@ function drawMaterial(x, y, material, brushSize) {
                     case "petrol":
                         cell = new CellPiwo();
                         break;
+                    case "acid":
+                        cell = new CellAcid();
                 }
                 cellGrid[y + cy][x + cx] = cell;
             } catch (ignored) {
@@ -457,7 +478,7 @@ function updateCellGrid() {
                         cellGrid[row][col].setUpdatable(false);
                         cellGrid[row + 1][col] = cellGrid[row][col];
                         cellGrid[row][col] = new CellEmpty();
-                    } else if (row < CANVAS_HEIGHT - 1 && cellGrid[row + 1][col].state === "liquid") {
+                    } else if (row < CANVAS_HEIGHT - 1 && (cellGrid[row + 1][col].state === "liquid" || cellGrid[row + 1][col].state === "acid")) {
                         cellGrid[row][col].setUpdatable(false);
                         let cellHold = cellGrid[row + 1][col]
                         cellGrid[row + 1][col] = cellGrid[row][col];
@@ -689,6 +710,76 @@ function updateCellGrid() {
                     }
                 }
 
+                if (cellGrid[row][col].state === "acid") {
+                    if (row < CANVAS_HEIGHT - 1 && cellGrid[row + 1][col].getClassName() === "CellEmpty" && Math.sign(Math.random() - 0.1) > 0) {
+                        cellGrid[row][col].setUpdatable(false);
+                        cellGrid[row + 1][col] = cellGrid[row][col];
+                        cellGrid[row][col] = new CellEmpty();
+                    } else if(row < CANVAS_HEIGHT - 1 && cellGrid[row + 1][col].dissolvable && Math.sign(Math.random() - 0.5) > 0) {
+                        if ((Math.random() - 0.5) > 0) cellGrid[row + 1][col] = new CellEmpty();
+                        else cellGrid[row + 1][col] = cellGrid[row][col];
+
+                        cellGrid[row][col] = new CellEmpty();
+                    }
+                    else {
+                        if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty" && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                            switch (Math.sign(Math.random() - 0.5)) {
+                                case 1:
+                                    cellGrid[row][col].setUpdatable(false);
+                                    cellGrid[row][col + 1] = cellGrid[row][col];
+                                    cellGrid[row][col] = new CellEmpty();
+                                    break;
+                                case -1:
+                                    cellGrid[row][col].setUpdatable(false);
+                                    cellGrid[row][col - 1] = cellGrid[row][col];
+                                    cellGrid[row][col] = new CellEmpty();
+                            }
+                        } else if (col > 0 && cellGrid[row][col - 1].dissolvable && col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].dissolvable) {
+                            switch (Math.sign(Math.random() - 0.5)) {
+                                case 1:
+                                    if ((Math.random() - 0.5) > 0) cellGrid[row][col+1] = new CellEmpty();
+                                    else cellGrid[row][col + 1] = cellGrid[row][col];
+                                    cellGrid[row][col].setUpdatable(false);
+
+                                    cellGrid[row][col] = new CellEmpty();
+                                    break;
+                                case -1:
+                                    if ((Math.random() - 0.5) > 0) cellGrid[row][col-1] = new CellEmpty();
+                                    else cellGrid[row][col - 1] = cellGrid[row][col];
+                                    cellGrid[row][col].setUpdatable(false);
+
+                                    cellGrid[row][col] = new CellEmpty();
+                            }
+                        }
+
+                        else if (col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].getClassName() === "CellEmpty") {
+                            cellGrid[row][col].setUpdatable(false);
+                            cellGrid[row][col + 1] = cellGrid[row][col];
+                            cellGrid[row][col] = new CellEmpty();
+                        }
+                        else if (col < CANVAS_WIDTH - 1 && cellGrid[row][col + 1].dissolvable) {
+                            if ((Math.random() - 0.5) > 0) cellGrid[row][col+1] = new CellEmpty();
+                            else cellGrid[row][col + 1] = cellGrid[row][col];
+                            cellGrid[row][col].setUpdatable(false);
+
+                            cellGrid[row][col] = new CellEmpty();
+                        } else if (col > 0 && cellGrid[row][col - 1].getClassName() === "CellEmpty") {
+                            cellGrid[row][col].setUpdatable(false);
+                            cellGrid[row][col - 1] = cellGrid[row][col];
+                            cellGrid[row][col] = new CellEmpty();
+                        }
+                        else if (col > 0 && cellGrid[row][col - 1].dissolvable) {
+                            if ((Math.random() - 0.5) > 0) cellGrid[row][col-1] = new CellEmpty();
+                            else cellGrid[row][col - 1] = cellGrid[row][col];
+                            cellGrid[row][col].setUpdatable(false);
+
+                            cellGrid[row][col] = new CellEmpty();
+                        }
+
+                    }
+
+
+                }
             }
 
         }
