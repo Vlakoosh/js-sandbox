@@ -32,6 +32,8 @@ class Cell {
 
         this.flammable = false;
         this.flamability = 0.5;
+
+        this.fresh = true;
     }
 
     setUpdatable(update) {
@@ -48,7 +50,7 @@ class Cell {
         }
     }
 
-    getColor(c, x, y) {
+    getColor(c) {
         if (c === "r") {
             return parseInt(this.color.substring(1, 3), 16) / (1 + (this.colorOffset * 0.15));
         }
@@ -181,9 +183,9 @@ class CellSmoke extends Cell {
 }
 
 class CellFire extends Cell {
-    constructor() {
+    constructor(lifetime) {
         super("Fire", "fire", "#ebbf0a");
-        this.lifetime = Math.floor(Math.random() * 10)
+        this.lifetime = (lifetime) ? lifetime : Math.floor(Math.random() * 10)
         this.spread = 0.9;
     }
 
@@ -237,7 +239,7 @@ class CellEmber extends Cell {
 
 
 let selectedMaterial = "ground";
-let globalBrushSize = 5;
+let globalBrushSize = 10;
 
 buttonWater.addEventListener("click", () => {
     selectedMaterial = "water";
@@ -344,7 +346,7 @@ function initCellGrid(grid) {
     }
     for (let row = 0; row < CANVAS_HEIGHT; row++) {
         for (let col = 0; col < CANVAS_WIDTH; col++) {
-            grid[row][col] = new CellEmpty();
+            grid[row][col] = new CellSand();
         }
     }
 }
@@ -425,7 +427,13 @@ function updateCellGrid() {
 
     for (let row = CANVAS_HEIGHT - 1; row >= 0; row--) {
         for (let col = CANVAS_WIDTH - 1; col >= 0; col--) {
+            if (cellGrid[row][col].lifetime === 0) {
+                cellGrid[row][col] = cellGrid[row][col].getDead();
+            }
+            cellGrid[row][col].tickLifetime();
+
             if (cellGrid[row][col].isCellUpdatable()) {
+
                 if (cellGrid[row][col].state === "sand") {
                     if (row < CANVAS_HEIGHT - 1 && cellGrid[row + 1][col].getClassName() === "CellEmpty") {
                         cellGrid[row][col].setUpdatable(false);
@@ -563,6 +571,26 @@ function updateCellGrid() {
                 }
 
                 if (cellGrid[row][col].state === "fire") {
+                    //multiply the fire
+                    if (Math.random() > 0.8) {
+                        if (col > 0) {
+                            if (cellGrid[row][col - 1].getClassName() === "CellEmpty" && cellGrid[row][col].lifetime > 0) {
+                                let newLifetime = Math.floor( cellGrid[row][col].lifetime * Math.random() );
+                                if (newLifetime < 0) newLifetime = 0;
+                                cellGrid[row][col - 1] = new CellFire(newLifetime);
+                                cellGrid[row][col - 1].setUpdatable(false);
+                            }
+                        }
+                        if (col < CANVAS_WIDTH - 1) {
+                            if (cellGrid[row][col + 1].name === "Empty" && cellGrid[row][col].lifetime > 0) {
+                                let newLifetime = Math.floor( cellGrid[row][col].lifetime * Math.random() );
+                                if (newLifetime < 0) newLifetime = 0;
+                                cellGrid[row][col + 1] = new CellFire(newLifetime);
+                                cellGrid[row][col + 1].setUpdatable(false);
+                            }
+                        }
+                    }
+
                     if ((row > 0 && cellGrid[row - 1][col].name !== "Empty" && cellGrid[row - 1][col].state !== "fire")) {
                         if (cellGrid[row - 1][col].state === "liquid") {
                             cellGrid[row][col].setUpdatable(false);
@@ -599,8 +627,8 @@ function updateCellGrid() {
                                 cellGrid[row][col] = new CellEmpty();
                             }
                         }
-
                     }
+
                 }
 
                 if (cellGrid[row][col].flammable) {
@@ -611,7 +639,7 @@ function updateCellGrid() {
                     //TODO make it so fire doesn't instantly light up everything above it
                     for (let i = minR; i <= maxR; i++) {
                         for (let j = minC; j <= maxC; j++) {
-                            if (cellGrid[row + i][col + j].name === "Fire") {
+                            if (cellGrid[row + i][col + j].name === "Fire" && cellGrid[row + i][col + j].fresh !== true) {
                                 let chance = Math.random() - 1 + cellGrid[row][col].flamability;
                                 if (chance > 0) {
                                     if (cellGrid[row][col].name === "Rope") cellGrid[row][col] = new CellEmber();
@@ -624,11 +652,14 @@ function updateCellGrid() {
                     }
                 }
 
-            } // if cell is updatable
-            cellGrid[row][col].tickLifetime();
-            if (cellGrid[row][col].lifetime === 0) {
-                cellGrid[row][col] = cellGrid[row][col].getDead();
             }
+
+        }
+    }
+
+    for (let row = 0; row < CANVAS_HEIGHT; row++) {
+        for (let col = 0; col < CANVAS_WIDTH; col++) {
+            cellGrid[row][col].fresh = false;
         }
     }
 
@@ -643,7 +674,7 @@ drawCellsOnCanvas();
 updateCellGrid();
 
 setInterval(() => {
-
+    //
     // cellGrid[0][50] = new CellSand();
     // cellGrid[0][51] = new CellSand();
     //
