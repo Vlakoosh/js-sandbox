@@ -102,9 +102,11 @@ class CellRedSand extends Cell {
     constructor() {
         super("Red Sand", "sand", "#a66228");
     }
-    getMelted(){
+
+    getMelted() {
         new CellGlass();
     }
+
     getClassName() {
         return this.constructor.name;
     }
@@ -362,7 +364,7 @@ function initCellGrid(grid) {
     }
     for (let row = 0; row < CANVAS_HEIGHT; row++) {
         for (let col = 0; col < CANVAS_WIDTH; col++) {
-            grid[row][col] = new CellSand();
+            grid[row][col] = new CellEmpty();
         }
     }
 }
@@ -591,7 +593,7 @@ function updateCellGrid() {
                     if (Math.random() > 0.8) {
                         if (col > 0) {
                             if (cellGrid[row][col - 1].getClassName() === "CellEmpty" && cellGrid[row][col].lifetime > 0) {
-                                let newLifetime = Math.floor( cellGrid[row][col].lifetime * Math.random() );
+                                let newLifetime = Math.floor(cellGrid[row][col].lifetime * Math.random());
                                 if (newLifetime < 0) newLifetime = 0;
                                 cellGrid[row][col - 1] = new CellFire(newLifetime);
                                 cellGrid[row][col - 1].setUpdatable(false);
@@ -599,7 +601,7 @@ function updateCellGrid() {
                         }
                         if (col < CANVAS_WIDTH - 1) {
                             if (cellGrid[row][col + 1].name === "Empty" && cellGrid[row][col].lifetime > 0) {
-                                let newLifetime = Math.floor( cellGrid[row][col].lifetime * Math.random() );
+                                let newLifetime = Math.floor(cellGrid[row][col].lifetime * Math.random());
                                 if (newLifetime < 0) newLifetime = 0;
                                 cellGrid[row][col + 1] = new CellFire(newLifetime);
                                 cellGrid[row][col + 1].setUpdatable(false);
